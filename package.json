@@ -1,0 +1,23 @@
+{
+  "name": "planejamento-semanal",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:web\"",
+    "dev:server": "npm -w @planejamento/server run dev",
+    "dev:web": "npm -w @planejamento/web run dev",
+    "build": "npm run build:shared && npm run build:server && npm run build:web",
+    "build:shared": "npm -w @planejamento/shared run build",
+    "build:server": "npm -w @planejamento/server run build",
+    "build:web": "npm -w @planejamento/web run build",
+    "db:init": "npm -w @planejamento/server run db:init",
+    "db:seed": "npm -w @planejamento/server run db:seed"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.3.3"
+  }
+}
