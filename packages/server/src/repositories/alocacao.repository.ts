@@ -10,6 +10,7 @@ interface AlocacaoRow {
   item_id: number;
   ordem: number;
   status_execucao: StatusExecucao | null;
+  comentario: string | null;
   created_at: string;
   updated_at: string | null;
 }
@@ -23,6 +24,7 @@ function rowToAlocacao(row: AlocacaoRow): Alocacao {
     itemId: row.item_id,
     ordem: row.ordem,
     statusExecucao: row.status_execucao || 'pendente',
+    comentario: row.comentario,
     createdAt: row.created_at,
     updatedAt: row.updated_at || row.created_at,
   };
@@ -90,6 +92,32 @@ export const alocacaoRepository = {
 
   updateStatusExecucao(id: number, statusExecucao: StatusExecucao): Alocacao | null {
     db.prepare('UPDATE alocacao SET status_execucao = ? WHERE id = ?').run(statusExecucao, id);
+    return this.findById(id);
+  },
+
+  updateComentario(id: number, comentario: string | null): Alocacao | null {
+    db.prepare('UPDATE alocacao SET comentario = ? WHERE id = ?').run(comentario, id);
+    return this.findById(id);
+  },
+
+  mover(id: number, novaPessoaId: number, novaData: string): Alocacao | null {
+    // Calcular nova ordem no destino
+    const alocacao = this.findById(id);
+    if (!alocacao) return null;
+
+    const maxOrdem = db
+      .prepare(
+        'SELECT MAX(ordem) as max FROM alocacao WHERE semana_id = ? AND pessoa_id = ? AND data = ?'
+      )
+      .get(alocacao.semanaId, novaPessoaId, novaData) as { max: number | null };
+    const novaOrdem = (maxOrdem.max ?? -1) + 1;
+
+    db.prepare('UPDATE alocacao SET pessoa_id = ?, data = ?, ordem = ? WHERE id = ?').run(
+      novaPessoaId,
+      novaData,
+      novaOrdem,
+      id
+    );
     return this.findById(id);
   },
 

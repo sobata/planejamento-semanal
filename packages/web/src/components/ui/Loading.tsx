@@ -13,7 +13,7 @@ export function Loading({ size = 'md', className = '' }: LoadingProps) {
   };
 
   return (
-    <Loader2 className={`animate-spin text-primary-600 ${sizeClasses[size]} ${className}`} />
+    <Loader2 className={`animate-spin text-primary-600 dark:text-primary-400 ${sizeClasses[size]} ${className}`} />
   );
 }
 
@@ -27,7 +27,7 @@ export function LoadingPage() {
 
 export function LoadingOverlay() {
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-white/50">
+    <div className="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-dark-900/50">
       <Loading size="lg" />
     </div>
   );

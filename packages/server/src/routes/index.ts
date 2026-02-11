@@ -3,6 +3,7 @@ import setorRoutes from './setor.routes.js';
 import pessoaRoutes from './pessoa.routes.js';
 import itemRoutes from './item.routes.js';
 import semanaRoutes from './semana.routes.js';
+import estatisticasRoutes from './estatisticas.routes.js';
 
 const router = Router();
 
@@ -10,6 +11,7 @@ router.use('/setores', setorRoutes);
 router.use('/pessoas', pessoaRoutes);
 router.use('/itens', itemRoutes);
 router.use('/semanas', semanaRoutes);
+router.use('/estatisticas', estatisticasRoutes);
 
 // Rota de health check
 router.get('/health', (_req, res) => {

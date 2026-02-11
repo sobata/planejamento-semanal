@@ -86,7 +86,9 @@ export const semanaRepository = {
   },
 
   create(dataReferencia?: string): Semana {
-    const bounds = getWeekBounds(dataReferencia ? new Date(dataReferencia) : new Date());
+    // Importante: passar string diretamente para evitar problemas de timezone
+    // new Date('2026-02-09') interpreta como UTC e pode virar dia anterior no horário local
+    const bounds = getWeekBounds(dataReferencia ?? new Date());
 
     // Verificar se já existe
     const existing = this.findByDataInicio(bounds.inicio);

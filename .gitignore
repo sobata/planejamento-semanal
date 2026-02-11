@@ -6,7 +6,8 @@ dist/
 build/
 
 # Database
-*.db
+packages/server/data/*.db
+packages/server/backups/
 
 # Environment
 .env

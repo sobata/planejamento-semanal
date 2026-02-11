@@ -182,6 +182,44 @@ router.patch('/alocacoes/:id/status', (req, res) => {
   res.json({ data: updated });
 });
 
+// PATCH /api/alocacoes/:id/comentario - Atualizar comentário da alocação
+router.patch('/alocacoes/:id/comentario', (req, res) => {
+  const id = parseInt(req.params.id);
+  const { comentario } = req.body as { comentario: string | null };
+
+  const alocacao = alocacaoRepository.findById(id);
+  if (!alocacao) {
+    throw new AppError(404, 'NOT_FOUND', 'Alocação não encontrada');
+  }
+
+  // Verificar se semana está fechada
+  checkWeekLock(alocacao.semanaId);
+
+  const updated = alocacaoRepository.updateComentario(id, comentario?.trim() || null);
+  res.json({ data: updated });
+});
+
+// PATCH /api/alocacoes/:id/mover - Mover alocação para outra célula (pessoa/data)
+router.patch('/alocacoes/:id/mover', (req, res) => {
+  const id = parseInt(req.params.id);
+  const { pessoaId, data } = req.body as { pessoaId: number; data: string };
+
+  const alocacao = alocacaoRepository.findById(id);
+  if (!alocacao) {
+    throw new AppError(404, 'NOT_FOUND', 'Alocação não encontrada');
+  }
+
+  // Verificar se semana está fechada
+  checkWeekLock(alocacao.semanaId);
+
+  if (!pessoaId || !data) {
+    throw new AppError(400, 'VALIDATION_ERROR', 'pessoaId e data são obrigatórios');
+  }
+
+  const updated = alocacaoRepository.mover(id, pessoaId, data);
+  res.json({ data: updated });
+});
+
 // DELETE /api/alocacoes/:id - Remover alocação
 router.delete('/alocacoes/:id', (req, res) => {
   const id = parseInt(req.params.id);

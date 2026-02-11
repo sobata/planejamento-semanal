@@ -103,6 +103,7 @@ export interface Alocacao {
   itemId: number;
   ordem: number;
   statusExecucao: StatusExecucao;
+  comentario: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -120,6 +121,10 @@ export interface CreateAlocacaoDTO {
 
 export interface UpdateAlocacaoStatusDTO {
   statusExecucao: StatusExecucao;
+}
+
+export interface UpdateAlocacaoComentarioDTO {
+  comentario: string | null;
 }
 
 export interface BulkAlocacaoDTO {
@@ -183,4 +188,46 @@ export interface PaginatedResponse<T> {
 export interface PaginationParams {
   page?: number;
   pageSize?: number;
+}
+
+// Estatísticas e Dashboard
+export type NivelPoder =
+  | 'humano'
+  | 'saiyajin'
+  | 'super_saiyajin'
+  | 'super_saiyajin_2'
+  | 'super_saiyajin_3'
+  | 'super_saiyajin_4';
+
+export interface EstatisticasSetor {
+  setor: Setor;
+  total: number;
+  realizados: number;
+  naoRealizados: number;
+  pendentes: number;
+  percentualRealizado: number;
+  nivelPoder: NivelPoder;
+}
+
+export interface EstatisticasPessoa {
+  pessoa: Pessoa;
+  total: number;
+  realizados: number;
+  percentualRealizado: number;
+}
+
+export interface EstatisticasSemana {
+  semana: Semana;
+  totais: {
+    total: number;
+    realizados: number;
+    naoRealizados: number;
+    pendentes: number;
+    percentualRealizado: number;
+    nivelPoder: NivelPoder;
+    esferasDragao: number; // 0-7 baseado no percentual
+  };
+  porSetor: EstatisticasSetor[];
+  topGuerreiros: EstatisticasPessoa[]; // Top 3
+  streakDias: number; // Dias consecutivos com 100%
 }

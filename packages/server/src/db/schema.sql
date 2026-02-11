@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS alocacao (
     item_id INTEGER NOT NULL,
     ordem INTEGER DEFAULT 0,
     status_execucao TEXT DEFAULT 'pendente' CHECK(status_execucao IN ('pendente', 'realizado', 'nao_realizado')),
+    comentario TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (semana_id) REFERENCES semana(id) ON DELETE CASCADE,

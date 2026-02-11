@@ -155,6 +155,44 @@ export function useUpdateAlocacaoStatus() {
   });
 }
 
+export function useUpdateAlocacaoComentario() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      comentario,
+    }: {
+      id: number;
+      semanaId: number;
+      comentario: string | null;
+    }) => alocacaoApi.updateComentario(id, comentario),
+    onSuccess: (_, { semanaId }) => {
+      queryClient.invalidateQueries({ queryKey: ['planejamento', semanaId] });
+    },
+  });
+}
+
+export function useMoveAlocacao() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      pessoaId,
+      data,
+    }: {
+      id: number;
+      semanaId: number;
+      pessoaId: number;
+      data: string;
+    }) => alocacaoApi.mover(id, pessoaId, data),
+    onSuccess: (_, { semanaId }) => {
+      queryClient.invalidateQueries({ queryKey: ['planejamento', semanaId] });
+    },
+  });
+}
+
 // === Observações ===
 export function useUpsertObservacao() {
   const queryClient = useQueryClient();

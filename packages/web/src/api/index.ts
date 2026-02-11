@@ -17,6 +17,7 @@ import type {
   PaginatedResponse,
   SemanaStatus,
   StatusExecucao,
+  EstatisticasSemana,
 } from '@planejamento/shared';
 
 // === Setores ===
@@ -164,8 +165,16 @@ export const alocacaoApi = {
     const { data } = await api.patch<{ data: Alocacao }>(`/semanas/alocacoes/${id}/status`, { statusExecucao });
     return data.data;
   },
+  updateComentario: async (id: number, comentario: string | null): Promise<Alocacao> => {
+    const { data } = await api.patch<{ data: Alocacao }>(`/semanas/alocacoes/${id}/comentario`, { comentario });
+    return data.data;
+  },
   delete: async (id: number): Promise<void> => {
     await api.delete(`/semanas/alocacoes/${id}`);
+  },
+  mover: async (id: number, pessoaId: number, data: string): Promise<Alocacao> => {
+    const { data: response } = await api.patch<{ data: Alocacao }>(`/semanas/alocacoes/${id}/mover`, { pessoaId, data });
+    return response.data;
   },
 };
 
@@ -181,6 +190,14 @@ export const observacaoApi = {
   },
   upsert: async (semanaId: number, pessoaId: number, texto: string): Promise<Observacao | null> => {
     const { data } = await api.put<{ data: Observacao | null }>(`/semanas/${semanaId}/pessoas/${pessoaId}/observacao`, { texto });
+    return data.data;
+  },
+};
+
+// === Estatísticas ===
+export const estatisticasApi = {
+  getSemana: async (semanaId: number): Promise<EstatisticasSemana> => {
+    const { data } = await api.get<{ data: EstatisticasSemana }>(`/estatisticas/semana/${semanaId}`);
     return data.data;
   },
 };

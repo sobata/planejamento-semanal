@@ -40,6 +40,19 @@ export function useUpdateItem() {
   });
 }
 
+export function useUpdateItemTitulo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, titulo }: { id: number; titulo: string; semanaId: number }) =>
+      itemApi.update(id, { titulo }),
+    onSuccess: (_, { semanaId }) => {
+      queryClient.invalidateQueries({ queryKey: ['itens'] });
+      queryClient.invalidateQueries({ queryKey: ['planejamento', semanaId] });
+    },
+  });
+}
+
 export function useToggleItemAtivo() {
   const queryClient = useQueryClient();
 

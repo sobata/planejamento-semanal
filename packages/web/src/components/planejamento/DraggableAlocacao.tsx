@@ -1,55 +1,10 @@
+import { useDraggable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 import { useState, useRef, useEffect } from 'react';
 import { Check, X, Clock, MessageSquare, Pencil } from 'lucide-react';
-import { ItemSelector } from './ItemSelector';
-import type { AlocacaoComItem, ItemComSetor, StatusExecucao } from '@planejamento/shared';
+import type { AlocacaoComItem, StatusExecucao } from '@planejamento/shared';
 
-interface DayCellProps {
-  alocacoes: AlocacaoComItem[];
-  itens: ItemComSetor[];
-  isLocked: boolean;
-  onAddItem: (item: ItemComSetor) => void;
-  onRemoveItem: (alocacaoId: number) => void;
-  onUpdateStatus: (alocacaoId: number, status: StatusExecucao) => void;
-  onUpdateComentario: (alocacaoId: number, comentario: string | null) => void;
-  onUpdateItemTitulo: (itemId: number, titulo: string) => void;
-}
-
-export function DayCell({
-  alocacoes,
-  itens,
-  isLocked,
-  onAddItem,
-  onRemoveItem,
-  onUpdateStatus,
-  onUpdateComentario,
-  onUpdateItemTitulo,
-}: DayCellProps) {
-  return (
-    <div className="min-h-[60px] p-1.5 flex flex-wrap gap-1 items-start content-start">
-      {alocacoes.map((alocacao) => (
-        <AlocacaoBadge
-          key={alocacao.id}
-          alocacao={alocacao}
-          isLocked={isLocked}
-          onRemove={() => onRemoveItem(alocacao.id)}
-          onUpdateStatus={(status) => onUpdateStatus(alocacao.id, status)}
-          onUpdateComentario={(comentario) => onUpdateComentario(alocacao.id, comentario)}
-          onUpdateItemTitulo={(titulo) => onUpdateItemTitulo(alocacao.item.id, titulo)}
-        />
-      ))}
-
-      {!isLocked && (
-        <ItemSelector
-          itens={itens}
-          onSelect={onAddItem}
-          disabled={isLocked}
-        />
-      )}
-    </div>
-  );
-}
-
-interface AlocacaoBadgeProps {
+interface DraggableAlocacaoProps {
   alocacao: AlocacaoComItem;
   isLocked: boolean;
   onRemove: () => void;
@@ -58,7 +13,23 @@ interface AlocacaoBadgeProps {
   onUpdateItemTitulo: (titulo: string) => void;
 }
 
-function AlocacaoBadge({ alocacao, isLocked, onRemove, onUpdateStatus, onUpdateComentario, onUpdateItemTitulo }: AlocacaoBadgeProps) {
+export function DraggableAlocacao({
+  alocacao,
+  isLocked,
+  onRemove,
+  onUpdateStatus,
+  onUpdateComentario,
+  onUpdateItemTitulo,
+}: DraggableAlocacaoProps) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `alocacao-${alocacao.id}`,
+    data: {
+      type: 'alocacao',
+      alocacao,
+    },
+    disabled: isLocked,
+  });
+
   const [showMenu, setShowMenu] = useState(false);
   const [showComentarioInput, setShowComentarioInput] = useState(false);
   const [showTituloInput, setShowTituloInput] = useState(false);
@@ -122,17 +93,17 @@ function AlocacaoBadge({ alocacao, isLocked, onRemove, onUpdateStatus, onUpdateC
     switch (alocacao.statusExecucao) {
       case 'realizado':
         return {
-          bg: 'bg-green-100',
-          border: 'border-green-400',
+          bg: 'bg-green-100 dark:bg-green-900/30',
+          border: 'border-green-400 dark:border-green-600',
           icon: <Check className="w-3 h-3 text-green-600" />,
         };
       case 'nao_realizado':
         return {
-          bg: 'bg-red-100',
-          border: 'border-red-400',
+          bg: 'bg-red-100 dark:bg-red-900/30',
+          border: 'border-red-400 dark:border-red-600',
           icon: <X className="w-3 h-3 text-red-600" />,
         };
-      default: // pendente
+      default:
         return {
           bg: '',
           border: 'border-transparent',
@@ -142,25 +113,41 @@ function AlocacaoBadge({ alocacao, isLocked, onRemove, onUpdateStatus, onUpdateC
   };
 
   const statusStyles = getStatusStyles();
-
   const hasComentario = !!alocacao.comentario;
 
   return (
-    <div className="relative" ref={menuRef}>
-      <button
-        onClick={() => setShowMenu(!showMenu)}
-        className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border-2 transition-all ${statusStyles.bg} ${statusStyles.border}`}
+    <div
+      className="relative"
+      ref={menuRef}
+      style={{
+        visibility: isDragging ? 'hidden' : 'visible',
+      }}
+    >
+      <div
+        ref={setNodeRef}
+        {...listeners}
+        {...attributes}
+        className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded border-2 transition-shadow ${statusStyles.bg} ${statusStyles.border} ${
+          !isLocked ? 'cursor-grab active:cursor-grabbing' : ''
+        }`}
         style={{
           backgroundColor: statusStyles.bg ? undefined : alocacao.item.cor,
-          color: statusStyles.bg ? '#374151' : '#fff',
+          color: statusStyles.bg ? undefined : '#fff',
+          touchAction: 'none',
         }}
         title={alocacao.comentario || undefined}
       >
-        {statusStyles.icon}
-        {hasComentario && (
-          <MessageSquare className="w-3 h-3 opacity-70" />
-        )}
-        {alocacao.item.titulo}
+        {/* Badge content - clickable for menu */}
+        <button
+          onClick={() => setShowMenu(!showMenu)}
+          className="inline-flex items-center gap-1"
+        >
+          {statusStyles.icon}
+          {hasComentario && <MessageSquare className="w-3 h-3 opacity-70" />}
+          {alocacao.item.titulo}
+        </button>
+
+        {/* Remove button */}
         {!isLocked && (
           <span
             onClick={(e) => {
@@ -169,23 +156,24 @@ function AlocacaoBadge({ alocacao, isLocked, onRemove, onUpdateStatus, onUpdateC
             }}
             className="ml-0.5 hover:opacity-70 cursor-pointer"
           >
-            ×
+            x
           </span>
         )}
-      </button>
+      </div>
 
+      {/* Menu dropdown */}
       {showMenu && !showComentarioInput && !showTituloInput && (
-        <div className="absolute z-50 top-full left-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-          <div className="p-1 text-xs text-gray-500 border-b bg-gray-50">
-            Status de execução
+        <div className="absolute z-50 top-full left-0 mt-1 w-48 bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-600 overflow-hidden">
+          <div className="p-1 text-xs text-gray-500 dark:text-gray-400 border-b dark:border-dark-600 bg-gray-50 dark:bg-dark-700">
+            Status de execucao
           </div>
           <button
             onClick={() => {
               onUpdateStatus('pendente');
               setShowMenu(false);
             }}
-            className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-50 ${
-              alocacao.statusExecucao === 'pendente' ? 'bg-gray-100' : ''
+            className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-dark-700 ${
+              alocacao.statusExecucao === 'pendente' ? 'bg-gray-100 dark:bg-dark-600' : ''
             }`}
           >
             <Clock className="w-4 h-4 text-gray-400" />
@@ -196,8 +184,8 @@ function AlocacaoBadge({ alocacao, isLocked, onRemove, onUpdateStatus, onUpdateC
               onUpdateStatus('realizado');
               setShowMenu(false);
             }}
-            className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-50 ${
-              alocacao.statusExecucao === 'realizado' ? 'bg-green-50' : ''
+            className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-dark-700 ${
+              alocacao.statusExecucao === 'realizado' ? 'bg-green-50 dark:bg-green-900/30' : ''
             }`}
           >
             <Check className="w-4 h-4 text-green-600" />
@@ -208,47 +196,48 @@ function AlocacaoBadge({ alocacao, isLocked, onRemove, onUpdateStatus, onUpdateC
               onUpdateStatus('nao_realizado');
               setShowMenu(false);
             }}
-            className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-50 ${
-              alocacao.statusExecucao === 'nao_realizado' ? 'bg-red-50' : ''
+            className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-dark-700 ${
+              alocacao.statusExecucao === 'nao_realizado' ? 'bg-red-50 dark:bg-red-900/30' : ''
             }`}
           >
             <X className="w-4 h-4 text-red-600" />
-            Não realizado
+            Nao realizado
           </button>
 
-          <div className="border-t">
+          <div className="border-t dark:border-dark-600">
             <button
               onClick={() => setShowTituloInput(true)}
-              className="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-50"
+              className="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-dark-700"
             >
               <Pencil className="w-4 h-4 text-gray-400" />
-              Editar título
+              Editar titulo
             </button>
             <button
               onClick={() => setShowComentarioInput(true)}
-              className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-50 ${
+              className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-dark-700 ${
                 hasComentario ? 'text-blue-600' : ''
               }`}
               disabled={isLocked}
             >
               <MessageSquare className={`w-4 h-4 ${hasComentario ? 'text-blue-500' : 'text-gray-400'}`} />
-              {hasComentario ? 'Editar comentário' : 'Adicionar comentário'}
+              {hasComentario ? 'Editar comentario' : 'Adicionar comentario'}
             </button>
           </div>
 
           {hasComentario && (
-            <div className="px-3 py-2 text-xs text-gray-600 bg-yellow-50 border-t">
-              <span className="font-medium">Comentário:</span>
+            <div className="px-3 py-2 text-xs text-gray-600 dark:text-gray-300 bg-yellow-50 dark:bg-yellow-900/20 border-t dark:border-dark-600">
+              <span className="font-medium">Comentario:</span>
               <p className="mt-0.5 line-clamp-2">{alocacao.comentario}</p>
             </div>
           )}
         </div>
       )}
 
+      {/* Titulo input */}
       {showMenu && showTituloInput && (
-        <div className="absolute z-50 top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+        <div className="absolute z-50 top-full left-0 mt-1 w-64 bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-600 overflow-hidden">
           <div className="p-2">
-            <div className="text-xs text-gray-500 mb-1">Editar título do item</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Editar titulo do item</div>
             <input
               ref={tituloInputRef}
               type="text"
@@ -262,8 +251,8 @@ function AlocacaoBadge({ alocacao, isLocked, onRemove, onUpdateStatus, onUpdateC
                   setTituloText(alocacao.item.titulo);
                 }
               }}
-              className="w-full px-2 py-1.5 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Título do item..."
+              className="input"
+              placeholder="Titulo do item..."
             />
             <div className="flex justify-end gap-2 mt-2">
               <button
@@ -271,7 +260,7 @@ function AlocacaoBadge({ alocacao, isLocked, onRemove, onUpdateStatus, onUpdateC
                   setShowTituloInput(false);
                   setTituloText(alocacao.item.titulo);
                 }}
-                className="px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded"
+                className="px-2 py-1 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded"
               >
                 Cancelar
               </button>
@@ -287,17 +276,18 @@ function AlocacaoBadge({ alocacao, isLocked, onRemove, onUpdateStatus, onUpdateC
         </div>
       )}
 
+      {/* Comentario input */}
       {showMenu && showComentarioInput && (
-        <div className="absolute z-50 top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+        <div className="absolute z-50 top-full left-0 mt-1 w-64 bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-600 overflow-hidden">
           <div className="p-2">
-            <div className="text-xs text-gray-500 mb-1">Comentário</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Comentario</div>
             <textarea
               ref={comentarioInputRef}
               value={comentarioText}
               onChange={(e) => setComentarioText(e.target.value)}
-              className="w-full px-2 py-1.5 text-sm border rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input resize-none"
               rows={3}
-              placeholder="Digite um comentário..."
+              placeholder="Digite um comentario..."
               disabled={isLocked}
             />
             <div className="flex justify-end gap-2 mt-2">
@@ -306,7 +296,7 @@ function AlocacaoBadge({ alocacao, isLocked, onRemove, onUpdateStatus, onUpdateC
                   setShowComentarioInput(false);
                   setComentarioText(alocacao.comentario || '');
                 }}
-                className="px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded"
+                className="px-2 py-1 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 rounded"
               >
                 Cancelar
               </button>
@@ -317,7 +307,7 @@ function AlocacaoBadge({ alocacao, isLocked, onRemove, onUpdateStatus, onUpdateC
                     setShowComentarioInput(false);
                     setShowMenu(false);
                   }}
-                  className="px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded"
+                  className="px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
                   disabled={isLocked}
                 >
                   Remover

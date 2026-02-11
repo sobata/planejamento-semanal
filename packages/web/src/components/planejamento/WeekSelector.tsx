@@ -18,8 +18,13 @@ export function WeekSelector({
   onCreatePrevious,
 }: WeekSelectorProps) {
   const currentIndex = semanas.findIndex((s) => s.id === semana.id);
-  const hasPrevious = currentIndex < semanas.length - 1;
-  const hasNext = currentIndex > 0;
+  // Semanas ordenadas DESC: índice 0 = mais recente
+  const hasPrevious = currentIndex < semanas.length - 1; // existe semana mais antiga
+  const hasNext = currentIndex > 0; // existe semana mais recente
+
+  // Pode navegar ou criar
+  const canGoPrevious = hasPrevious || !!onCreatePrevious;
+  const canGoNext = hasNext || !!onCreateNext;
 
   const handlePrevious = () => {
     if (hasPrevious) {
@@ -42,7 +47,8 @@ export function WeekSelector({
       <button
         onClick={handlePrevious}
         className="btn btn-ghost btn-sm"
-        title="Semana anterior"
+        disabled={!canGoPrevious}
+        title={hasPrevious ? 'Semana anterior' : 'Criar semana anterior'}
       >
         <ChevronLeft className="w-5 h-5" />
       </button>
@@ -69,7 +75,8 @@ export function WeekSelector({
       <button
         onClick={handleNext}
         className="btn btn-ghost btn-sm"
-        title="Próxima semana"
+        disabled={!canGoNext}
+        title={hasNext ? 'Próxima semana' : 'Criar próxima semana'}
       >
         <ChevronRight className="w-5 h-5" />
       </button>

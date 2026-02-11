@@ -134,8 +134,25 @@ export async function initializeDatabase(): Promise<void> {
   const schema = readFileSync(schemaPath, 'utf-8');
   db.exec(schema);
 
+  // Migrations
+  runMigrations();
+
   initialized = true;
   console.log('Database initialized successfully');
+}
+
+function runMigrations(): void {
+  // Migration: Adicionar campo comentario na tabela alocacao
+  try {
+    const columns = db.prepare("PRAGMA table_info(alocacao)").all() as { name: string }[];
+    const hasComentario = columns.some(col => col.name === 'comentario');
+    if (!hasComentario) {
+      db.exec('ALTER TABLE alocacao ADD COLUMN comentario TEXT');
+      console.log('Migration: Added comentario column to alocacao table');
+    }
+  } catch (error) {
+    console.error('Migration error:', error);
+  }
 }
 
 export function closeDatabase(): void {
