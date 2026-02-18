@@ -14,6 +14,7 @@ interface DroppableDayCellProps {
   onUpdateStatus: (alocacaoId: number, status: StatusExecucao) => void;
   onUpdateComentario: (alocacaoId: number, comentario: string | null) => void;
   onUpdateItemTitulo: (itemId: number, titulo: string) => void;
+  onUpdateDependencia: (alocacaoId: number, dependeDeItemId: number | null) => void;
 }
 
 export function DroppableDayCell({
@@ -27,6 +28,7 @@ export function DroppableDayCell({
   onUpdateStatus,
   onUpdateComentario,
   onUpdateItemTitulo,
+  onUpdateDependencia,
 }: DroppableDayCellProps) {
   const { isOver, setNodeRef } = useDroppable({
     id: `cell-${pessoaId}-${date}`,
@@ -38,6 +40,9 @@ export function DroppableDayCell({
     disabled: isLocked,
   });
 
+  // Verificar se há itens bloqueados nesta célula para adicionar padding extra
+  const hasBlockedItems = alocacoes.some(a => !a.dependenciaLiberada);
+
   return (
     <div
       ref={setNodeRef}
@@ -45,17 +50,19 @@ export function DroppableDayCell({
         isOver && !isLocked
           ? 'bg-primary-100 dark:bg-primary-900/40 ring-2 ring-primary-500 ring-inset scale-[1.02]'
           : ''
-      }`}
+      } ${hasBlockedItems ? 'pb-5' : ''}`}
     >
       {alocacoes.map((alocacao) => (
         <DraggableAlocacao
           key={alocacao.id}
           alocacao={alocacao}
           isLocked={isLocked}
+          availableItems={itens}
           onRemove={() => onRemoveItem(alocacao.id)}
           onUpdateStatus={(status) => onUpdateStatus(alocacao.id, status)}
           onUpdateComentario={(comentario) => onUpdateComentario(alocacao.id, comentario)}
           onUpdateItemTitulo={(titulo) => onUpdateItemTitulo(alocacao.item.id, titulo)}
+          onUpdateDependencia={(dependeDeItemId) => onUpdateDependencia(alocacao.id, dependeDeItemId)}
         />
       ))}
 

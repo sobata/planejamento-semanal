@@ -13,6 +13,7 @@ import {
   useUpdateAlocacaoStatus,
   useUpdateAlocacaoComentario,
   useMoveAlocacao,
+  useUpdateAlocacaoDependencia,
   useUpsertObservacao,
   useItens,
   useSetores,
@@ -65,6 +66,7 @@ export function PlanejamentoPage() {
   const updateComentario = useUpdateAlocacaoComentario();
   const moveAlocacao = useMoveAlocacao();
   const updateItemTitulo = useUpdateItemTitulo();
+  const updateDependencia = useUpdateAlocacaoDependencia();
   const upsertObservacao = useUpsertObservacao();
 
   // Selecionar semana inicial quando carregada
@@ -224,6 +226,16 @@ export function PlanejamentoPage() {
     }
   };
 
+  const handleUpdateDependencia = async (alocacaoId: number, dependeDeItemId: number | null) => {
+    if (selectedSemanaId) {
+      await updateDependencia.mutateAsync({
+        id: alocacaoId,
+        semanaId: selectedSemanaId,
+        dependeDeItemId,
+      });
+    }
+  };
+
   if (loadingSemanaAtual || loadingSemanas) {
     return <LoadingPage />;
   }
@@ -318,6 +330,7 @@ export function PlanejamentoPage() {
           onUpdateItemTitulo={handleUpdateItemTitulo}
           onSaveObservacao={handleSaveObservacao}
           onMoveAlocacao={handleMoveAlocacao}
+          onUpdateDependencia={handleUpdateDependencia}
         />
       ) : null}
 

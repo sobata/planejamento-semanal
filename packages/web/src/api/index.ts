@@ -176,6 +176,10 @@ export const alocacaoApi = {
     const { data: response } = await api.patch<{ data: Alocacao }>(`/semanas/alocacoes/${id}/mover`, { pessoaId, data });
     return response.data;
   },
+  updateDependencia: async (id: number, dependeDeItemId: number | null): Promise<Alocacao> => {
+    const { data } = await api.patch<{ data: Alocacao }>(`/semanas/alocacoes/${id}/dependencia`, { dependeDeItemId });
+    return data.data;
+  },
 };
 
 // === Observações ===

@@ -5,3 +5,5 @@ export { DayCell } from './DayCell';
 export { ObservacaoCell } from './ObservacaoCell';
 export { PlanejamentoGrid } from './PlanejamentoGrid';
 export { SetorFilter } from './SetorFilter';
+export { DependencyConnections } from './DependencyConnections';
+export { ConnectionDragLayer } from './ConnectionDragLayer';
