@@ -142,13 +142,21 @@ export async function initializeDatabase(): Promise<void> {
 }
 
 function runMigrations(): void {
-  // Migration: Adicionar campo comentario na tabela alocacao
   try {
     const columns = db.prepare("PRAGMA table_info(alocacao)").all() as { name: string }[];
+
+    // Migration: Adicionar campo comentario na tabela alocacao
     const hasComentario = columns.some(col => col.name === 'comentario');
     if (!hasComentario) {
       db.exec('ALTER TABLE alocacao ADD COLUMN comentario TEXT');
       console.log('Migration: Added comentario column to alocacao table');
+    }
+
+    // Migration: Adicionar campo depende_de_item_id na tabela alocacao
+    const hasDependeDe = columns.some(col => col.name === 'depende_de_item_id');
+    if (!hasDependeDe) {
+      db.exec('ALTER TABLE alocacao ADD COLUMN depende_de_item_id INTEGER REFERENCES item(id)');
+      console.log('Migration: Added depende_de_item_id column to alocacao table');
     }
   } catch (error) {
     console.error('Migration error:', error);

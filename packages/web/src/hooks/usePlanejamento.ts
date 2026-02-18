@@ -193,6 +193,24 @@ export function useMoveAlocacao() {
   });
 }
 
+export function useUpdateAlocacaoDependencia() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      dependeDeItemId,
+    }: {
+      id: number;
+      semanaId: number;
+      dependeDeItemId: number | null;
+    }) => alocacaoApi.updateDependencia(id, dependeDeItemId),
+    onSuccess: (_, { semanaId }) => {
+      queryClient.invalidateQueries({ queryKey: ['planejamento', semanaId] });
+    },
+  });
+}
+
 // === Observações ===
 export function useUpsertObservacao() {
   const queryClient = useQueryClient();

@@ -104,12 +104,15 @@ export interface Alocacao {
   ordem: number;
   statusExecucao: StatusExecucao;
   comentario: string | null;
+  dependeDeItemId: number | null; // Item que precisa estar realizado para liberar este
   createdAt: string;
   updatedAt: string;
 }
 
 export interface AlocacaoComItem extends Alocacao {
   item: Item;
+  dependenciaLiberada: boolean; // true se não tem dependência ou se o item dependente já foi realizado
+  itemDependente?: Item; // Info do item do qual depende (para exibir na UI)
 }
 
 export interface CreateAlocacaoDTO {
@@ -117,6 +120,11 @@ export interface CreateAlocacaoDTO {
   data: string;
   itemId: number;
   ordem?: number;
+  dependeDeItemId?: number;
+}
+
+export interface UpdateAlocacaoDependenciaDTO {
+  dependeDeItemId: number | null;
 }
 
 export interface UpdateAlocacaoStatusDTO {

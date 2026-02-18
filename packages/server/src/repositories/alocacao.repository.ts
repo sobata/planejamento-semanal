@@ -11,6 +11,7 @@ interface AlocacaoRow {
   ordem: number;
   status_execucao: StatusExecucao | null;
   comentario: string | null;
+  depende_de_item_id: number | null;
   created_at: string;
   updated_at: string | null;
 }
@@ -25,6 +26,7 @@ function rowToAlocacao(row: AlocacaoRow): Alocacao {
     ordem: row.ordem,
     statusExecucao: row.status_execucao || 'pendente',
     comentario: row.comentario,
+    dependeDeItemId: row.depende_de_item_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at || row.created_at,
   };
@@ -40,10 +42,33 @@ export const alocacaoRepository = {
 
   findBySemanaWithItem(semanaId: number): AlocacaoComItem[] {
     const alocacoes = this.findBySemana(semanaId);
-    return alocacoes.map(alocacao => ({
-      ...alocacao,
-      item: itemRepository.findById(alocacao.itemId)!,
-    }));
+
+    // Pré-calcular quais itens estão realizados na semana (por qualquer pessoa)
+    const itensRealizados = new Set<number>();
+    for (const a of alocacoes) {
+      if (a.statusExecucao === 'realizado') {
+        itensRealizados.add(a.itemId);
+      }
+    }
+
+    return alocacoes.map(alocacao => {
+      const item = itemRepository.findById(alocacao.itemId)!;
+      const itemDependente = alocacao.dependeDeItemId
+        ? itemRepository.findById(alocacao.dependeDeItemId) || undefined
+        : undefined;
+
+      // Dependência liberada se:
+      // 1. Não tem dependência (dependeDeItemId é null)
+      // 2. O item do qual depende já foi realizado por alguém na semana
+      const dependenciaLiberada = !alocacao.dependeDeItemId || itensRealizados.has(alocacao.dependeDeItemId);
+
+      return {
+        ...alocacao,
+        item,
+        itemDependente,
+        dependenciaLiberada,
+      };
+    });
   },
 
   findBySemanaAndPessoa(semanaId: number, pessoaId: number): Alocacao[] {
@@ -54,11 +79,33 @@ export const alocacaoRepository = {
   },
 
   findBySemanaAndPessoaWithItem(semanaId: number, pessoaId: number): AlocacaoComItem[] {
-    const alocacoes = this.findBySemanaAndPessoa(semanaId, pessoaId);
-    return alocacoes.map(alocacao => ({
-      ...alocacao,
-      item: itemRepository.findById(alocacao.itemId)!,
-    }));
+    // Buscar TODAS as alocações da semana para verificar dependências
+    const todasAlocacoes = this.findBySemana(semanaId);
+    const alocacoesPessoa = this.findBySemanaAndPessoa(semanaId, pessoaId);
+
+    // Pré-calcular quais itens estão realizados na semana (por qualquer pessoa)
+    const itensRealizados = new Set<number>();
+    for (const a of todasAlocacoes) {
+      if (a.statusExecucao === 'realizado') {
+        itensRealizados.add(a.itemId);
+      }
+    }
+
+    return alocacoesPessoa.map(alocacao => {
+      const item = itemRepository.findById(alocacao.itemId)!;
+      const itemDependente = alocacao.dependeDeItemId
+        ? itemRepository.findById(alocacao.dependeDeItemId) || undefined
+        : undefined;
+
+      const dependenciaLiberada = !alocacao.dependeDeItemId || itensRealizados.has(alocacao.dependeDeItemId);
+
+      return {
+        ...alocacao,
+        item,
+        itemDependente,
+        dependenciaLiberada,
+      };
+    });
   },
 
   findById(id: number): Alocacao | null {
@@ -79,9 +126,16 @@ export const alocacaoRepository = {
     }
 
     const stmt = db.prepare(
-      'INSERT INTO alocacao (semana_id, pessoa_id, data, item_id, ordem) VALUES (?, ?, ?, ?, ?)'
+      'INSERT INTO alocacao (semana_id, pessoa_id, data, item_id, ordem, depende_de_item_id) VALUES (?, ?, ?, ?, ?, ?)'
     );
-    const result = stmt.run(semanaId, data.pessoaId, data.data, data.itemId, ordem);
+    const result = stmt.run(
+      semanaId,
+      data.pessoaId,
+      data.data,
+      data.itemId,
+      ordem,
+      data.dependeDeItemId ?? null
+    );
     return this.findById(result.lastInsertRowid as number)!;
   },
 
@@ -97,6 +151,11 @@ export const alocacaoRepository = {
 
   updateComentario(id: number, comentario: string | null): Alocacao | null {
     db.prepare('UPDATE alocacao SET comentario = ? WHERE id = ?').run(comentario, id);
+    return this.findById(id);
+  },
+
+  updateDependencia(id: number, dependeDeItemId: number | null): Alocacao | null {
+    db.prepare('UPDATE alocacao SET depende_de_item_id = ? WHERE id = ?').run(dependeDeItemId, id);
     return this.findById(id);
   },
 

@@ -199,6 +199,28 @@ router.patch('/alocacoes/:id/comentario', (req, res) => {
   res.json({ data: updated });
 });
 
+// PATCH /api/alocacoes/:id/dependencia - Atualizar dependência da alocação
+router.patch('/alocacoes/:id/dependencia', (req, res) => {
+  const id = parseInt(req.params.id);
+  const { dependeDeItemId } = req.body as { dependeDeItemId: number | null };
+
+  const alocacao = alocacaoRepository.findById(id);
+  if (!alocacao) {
+    throw new AppError(404, 'NOT_FOUND', 'Alocação não encontrada');
+  }
+
+  // Verificar se semana está fechada
+  checkWeekLock(alocacao.semanaId);
+
+  // Não permitir que um item dependa de si mesmo
+  if (dependeDeItemId === alocacao.itemId) {
+    throw new AppError(400, 'VALIDATION_ERROR', 'Um item não pode depender de si mesmo');
+  }
+
+  const updated = alocacaoRepository.updateDependencia(id, dependeDeItemId);
+  res.json({ data: updated });
+});
+
 // PATCH /api/alocacoes/:id/mover - Mover alocação para outra célula (pessoa/data)
 router.patch('/alocacoes/:id/mover', (req, res) => {
   const id = parseInt(req.params.id);

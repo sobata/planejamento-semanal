@@ -1,5 +1,5 @@
-import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronDown, ChevronRight, Link2, Link2Off } from 'lucide-react';
+import { useState, useRef, useMemo, useCallback } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -13,6 +13,8 @@ import {
 import { getWeekDaysDetailed } from '@planejamento/shared';
 import { DroppableDayCell } from './DroppableDayCell';
 import { ObservacaoCell } from './ObservacaoCell';
+import { DependencyConnections } from './DependencyConnections';
+import { ConnectionDragLayer } from './ConnectionDragLayer';
 import type {
   PlanejamentoResponse,
   SetorPlanejamento,
@@ -29,6 +31,7 @@ interface PlanejamentoGridProps {
   onUpdateStatus: (alocacaoId: number, status: StatusExecucao) => void;
   onUpdateComentario: (alocacaoId: number, comentario: string | null) => void;
   onUpdateItemTitulo: (itemId: number, titulo: string) => void;
+  onUpdateDependencia: (alocacaoId: number, dependeDeItemId: number | null) => void;
   onSaveObservacao: (pessoaId: number, texto: string) => void;
   onMoveAlocacao?: (alocacaoId: number, novaPessoaId: number, novaData: string) => void;
 }
@@ -41,14 +44,49 @@ export function PlanejamentoGrid({
   onUpdateStatus,
   onUpdateComentario,
   onUpdateItemTitulo,
+  onUpdateDependencia,
   onSaveObservacao,
   onMoveAlocacao,
 }: PlanejamentoGridProps) {
   const [collapsedSetores, setCollapsedSetores] = useState<Set<number>>(new Set());
   const [activeAlocacao, setActiveAlocacao] = useState<AlocacaoComItem | null>(null);
+  const [showConnections, setShowConnections] = useState(() => {
+    const saved = localStorage.getItem('planejamento-show-connections');
+    return saved !== 'false'; // Default true
+  });
+  const gridContainerRef = useRef<HTMLDivElement>(null);
 
   const isLocked = planejamento.semana.status === 'fechada';
   const weekDays = getWeekDaysDetailed(planejamento.semana.dataInicio);
+
+  // Toggle para mostrar/ocultar conexões
+  const toggleConnections = useCallback(() => {
+    setShowConnections(prev => {
+      const newValue = !prev;
+      localStorage.setItem('planejamento-show-connections', String(newValue));
+      return newValue;
+    });
+  }, []);
+
+  // Handler para criar conexão via drag
+  const handleConnectionDrag = useCallback((fromAlocacaoId: number, toItemId: number) => {
+    onUpdateDependencia(fromAlocacaoId, toItemId);
+  }, [onUpdateDependencia]);
+
+  // Coletar todas as alocacoes do planejamento para as conexoes
+  const allAlocacoes = useMemo(() => {
+    const alocacoes: AlocacaoComItem[] = [];
+    for (const setorPlan of planejamento.setores) {
+      // Skip setores colapsados
+      if (collapsedSetores.has(setorPlan.setor.id)) continue;
+      for (const pessoaPlan of setorPlan.pessoas) {
+        for (const dayAlocacoes of Object.values(pessoaPlan.alocacoes)) {
+          alocacoes.push(...dayAlocacoes);
+        }
+      }
+    }
+    return alocacoes;
+  }, [planejamento.setores, collapsedSetores]);
 
   // Configurar sensor com distancia minima para evitar conflitos com cliques
   const sensors = useSensors(
@@ -105,7 +143,38 @@ export function PlanejamentoGrid({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="card overflow-visible">
+      <div className="card overflow-visible relative" ref={gridContainerRef}>
+        {/* Toggle para mostrar/ocultar conexões */}
+        <button
+          onClick={toggleConnections}
+          className={`absolute top-2 right-2 z-20 p-1.5 rounded-lg transition-all ${
+            showConnections
+              ? 'bg-orange-100 text-orange-600 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400'
+              : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-dark-600 dark:text-gray-400'
+          }`}
+          title={showConnections ? 'Ocultar conexões de dependência' : 'Mostrar conexões de dependência'}
+        >
+          {showConnections ? <Link2 className="w-4 h-4" /> : <Link2Off className="w-4 h-4" />}
+        </button>
+
+        {/* Conexoes de dependencia SVG */}
+        {showConnections && (
+          <DependencyConnections
+            alocacoes={allAlocacoes}
+            containerRef={gridContainerRef}
+            highlightItemId={activeAlocacao?.itemId}
+          />
+        )}
+
+        {/* Layer de drag para criar conexões */}
+        {!isLocked && (
+          <ConnectionDragLayer
+            containerRef={gridContainerRef}
+            onConnect={handleConnectionDrag}
+            isLocked={isLocked}
+          />
+        )}
+
         <table className="w-full border-collapse" style={{ overflow: 'visible' }}>
           <thead>
             <tr className="bg-gray-50 dark:bg-dark-700 border-b dark:border-dark-600">
@@ -141,6 +210,7 @@ export function PlanejamentoGrid({
                 onUpdateStatus={onUpdateStatus}
                 onUpdateComentario={onUpdateComentario}
                 onUpdateItemTitulo={onUpdateItemTitulo}
+                onUpdateDependencia={onUpdateDependencia}
                 onSaveObservacao={onSaveObservacao}
               />
             ))}
@@ -185,6 +255,7 @@ interface SetorSectionProps {
   onUpdateStatus: (alocacaoId: number, status: StatusExecucao) => void;
   onUpdateComentario: (alocacaoId: number, comentario: string | null) => void;
   onUpdateItemTitulo: (itemId: number, titulo: string) => void;
+  onUpdateDependencia: (alocacaoId: number, dependeDeItemId: number | null) => void;
   onSaveObservacao: (pessoaId: number, texto: string) => void;
 }
 
@@ -200,6 +271,7 @@ function SetorSection({
   onUpdateStatus,
   onUpdateComentario,
   onUpdateItemTitulo,
+  onUpdateDependencia,
   onSaveObservacao,
 }: SetorSectionProps) {
   return (
@@ -255,6 +327,7 @@ function SetorSection({
                   onUpdateStatus={onUpdateStatus}
                   onUpdateComentario={onUpdateComentario}
                   onUpdateItemTitulo={onUpdateItemTitulo}
+                  onUpdateDependencia={onUpdateDependencia}
                 />
               </td>
             ))}

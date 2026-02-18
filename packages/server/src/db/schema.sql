@@ -58,6 +58,7 @@ CREATE INDEX IF NOT EXISTS idx_semana_status ON semana(status);
 
 -- Alocações (pessoa + dia + item)
 -- status_execucao: 'pendente' (default), 'realizado', 'nao_realizado'
+-- depende_de_item_id: item que precisa estar realizado (por qualquer pessoa) para liberar este
 CREATE TABLE IF NOT EXISTS alocacao (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     semana_id INTEGER NOT NULL,
@@ -67,11 +68,13 @@ CREATE TABLE IF NOT EXISTS alocacao (
     ordem INTEGER DEFAULT 0,
     status_execucao TEXT DEFAULT 'pendente' CHECK(status_execucao IN ('pendente', 'realizado', 'nao_realizado')),
     comentario TEXT,
+    depende_de_item_id INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (semana_id) REFERENCES semana(id) ON DELETE CASCADE,
     FOREIGN KEY (pessoa_id) REFERENCES pessoa(id),
     FOREIGN KEY (item_id) REFERENCES item(id),
+    FOREIGN KEY (depende_de_item_id) REFERENCES item(id),
     UNIQUE(semana_id, pessoa_id, data, item_id)
 );
 
